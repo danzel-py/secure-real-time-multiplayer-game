@@ -32,12 +32,35 @@ app.use(function(req, res, next) {
 });
 
 
+
+let currentUser = 0;
+const socketIdMap = new Map();
+let allUser = {}
 io.on('connection',(socket)=>{
+  currentUser++;
+  socket.broadcast.emit("allPlayer",allUser)
   console.log("This guy joined: "+ socket.id)
+  socket.broadcast.emit("player",{total: currentUser, connect: true})
   socket.on('disconnect',()=>{
-    console.log("This guy left: " + socket.id)
+    console.log("This guy left: " + socketIdMap.get(socket.id))
+    delete allUser[socketIdMap.get(socket.id)]
+    socketIdMap.delete(socket.id)
+    socket.broadcast.emit("player",{total: currentUser, connect: false})
+    socket.broadcast.emit("allPlayer",allUser)
+    currentUser--;
   })
+  socket.on('clientJoin',(data)=>{
+    socketIdMap.set(socket.id, data.id)
+    console.log(socketIdMap.get(socket.id))
+    allUser[data.id] = {}
+    allUser[data.id].x = data.x
+    allUser[data.id].y = data.y
+    allUser[data.id].score = data.score
+    socket.broadcast.emit('allPlayer',allUser)
+  })
+  
 })
+
 
 const portNum = process.env.PORT || 3000;
 

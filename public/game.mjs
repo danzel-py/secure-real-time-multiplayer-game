@@ -1,7 +1,7 @@
 import Player from './Player.mjs';
 import Collectible from './Collectible.mjs';
 
-const socket = io('http://localhost:6969');
+const socket = io();
 const canvas = document.getElementById('game-window');
 const ctx = canvas.getContext('2d');
 
@@ -43,46 +43,40 @@ function keyUpHandler(e) {
     }
 }
 
-var x = canvas.width / 2;
-var y = canvas.height - 30;
-var dx = 1;
-var dy = -1;
-var ballRadius = 10;
-function drawBall() {
-    ctx.beginPath();
-    ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "#0095DD";
+var rad = 10
+var spawnX = Math.round(Math.random()*(canvas.clientWidth));
+var spawnY = Math.round(Math.random()*(canvas.clientHeight));
+let player0 = new Player(spawnX,spawnY,0,new Date().getUTCMilliseconds())
+
+function drawPlayer(x,y,ballRadius){
+    ctx.beginPath()
+    ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+    ctx.fillStyle = "#00FFFFF";
     ctx.fill();
-    ctx.closePath();
+    ctx.closePath()
 }
 
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBall();
-    if (pressDown) {
-        y -= dy
+socket.emit("clientJoin",player0)
+function draw(data = {}){
+    ctx.clearRect(0,0,canvas.clientWidth, canvas.clientHeight)
+    drawPlayer(player0.x,player0.y,rad)
+    if(pressRight && player0.x < canvas.clientWidth-rad){
+        console.log("right")
+        player0.movePlayer("right",3)
+        socket.emit("clientJoin",player0)
     }
-    if(pressUp){
-        y+= dy
-    }
-    if(pressRight){
-        x+= dx
-    }
-    if(pressLeft){
-        x-= dx
-    }
-    if (x <= ballRadius) {
-        x = ballRadius
-    }
-    else if (x >= canvas.width - ballRadius) {
-        x = canvas.width - ballRadius
-    }
-    if (y <= ballRadius) {
-        y = ballRadius
-    }
-    else if( y >= canvas.height - ballRadius){
-        y = canvas.height - ballRadius
+    for (const player in data){
+        drawPlayer(data[player].x,data[player].y,rad)
     }
 }
 
-setInterval(draw, 10);
+
+socket.on("player",(data)=>{
+    console.log("online: ", data.total) // logs in client side
+})
+
+socket.on("allPlayer",(data)=>{
+    console.log(data)
+    draw(data)
+})
+
